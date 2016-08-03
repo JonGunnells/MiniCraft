@@ -13,32 +13,33 @@ import static javax.xml.stream.XMLStreamConstants.SPACE;
 
 public class MyGdxGame extends ApplicationAdapter {
 	SpriteBatch batch;
-	TextureRegion down, up, right;
+	TextureRegion curDir, up, down, left, right, stand;
 	float x, y, xv, yv;
-	boolean faceRight = true, faceUp;
-	Animation walk, walkUp, walkDown;
 	float time;
+	Animation walk;
+	static final float SPEED_INCREASE = 3.5f;
+	static final float MAX_VELOCITY = 150;
+	static final float DECELERATION = 0.5f;
 
-	static final float SPEED_INCREASE = 500;
-	static final float MAX_VELOCITY = 300;
-	static final float DECELERATION = 0.95f;
 
-	static final int WIDTH = 18;
-	static final int HEIGHT = 26;
-
+	static final int WIDTH = 16;
+	static final int HEIGHT = 16;
+	static final int DRAW_WIDTH = WIDTH*4;
+	static final int DRAW_HEIGHT = HEIGHT*4;
 
 
 	@Override
 	public void create () {
 		batch = new SpriteBatch();
 		Texture tiles = new Texture("tiles.png");
-		TextureRegion[][] grid = TextureRegion.split(tiles, 16, 16);
-		down = grid [6][0];
+		TextureRegion[][] grid = TextureRegion.split(tiles, WIDTH, HEIGHT);
+		down = grid[6][0];
 		up = grid[6][1];
+		stand = grid[6][2];
 		right = grid[6][3];
-		walk = new Animation(0.2f, grid[6][2], grid[6][3]);
-		walkUp = new Animation(0.2f, grid[6][1], grid [7][1]);
-		walkDown = new Animation(0.2f, grid[6][0], grid [7][0]);
+		left = new TextureRegion(right);
+		left.flip(true, false);
+		walk = new Animation(0.2f, grid[6][0],grid[6][1], grid[6][2], grid[6][3]);
 
 	}
 
@@ -48,65 +49,67 @@ public class MyGdxGame extends ApplicationAdapter {
 
 		time += Gdx.graphics.getDeltaTime();
 
-		TextureRegion img;
-
-		if (x > 0) {
-			img = walk.getKeyFrame(time, true);
+		if (x > 800) {
+			x = 0;
 		}
 
-		else if (yv != 0) {
-			img = walkUp.getKeyFrame(time, true);
-
+		else if (x < -0) {
+			x = 800;
+		}
+		else if (y > 600) {
+			y = 0;
 		}
 
-		else if (yv > 0) {
-			img = walkDown.getKeyFrame(time, true);
+		else if (y < -0) {
+			y = 600;
 		}
 
-		else {
-			img = down;
-		}
-
-		Gdx.gl.glClearColor(0.5f, 0.5f, 6, 3);    //window color
+		Gdx.gl.glClearColor(0.5f, 0.5f, 6, 3);		//window color
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 		batch.begin();
-		if (faceRight) {
-			batch.draw(img, x, y, WIDTH * 3, HEIGHT * 3);  //dimensions of character
-		}
-
-
-		else {
-			batch.draw(img, x + WIDTH * 3, y, WIDTH * -3, HEIGHT * 3);
-		}
+		batch.draw(curDir, x, y, DRAW_WIDTH, DRAW_HEIGHT);	//dimensions of character
 		batch.end();
 	}
 
 	public void move() {
+		if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
+			yv = MAX_VELOCITY;
+			curDir = up;
 
-			//while (Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
-			//	SPEED_INCREASE = MAX_VELOCITY;
-			//}
-
-			if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
-				yv = MAX_VELOCITY;
-				faceUp = true;
+			if (Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
+				yv = speedIncrease(yv);
 			}
-			else if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
-				yv = -MAX_VELOCITY;
-				faceUp = false;
+		}
+
+		else if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
+			yv = -MAX_VELOCITY;
+			curDir = down;
+
+			if (Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
+				yv = speedIncrease(yv);
 			}
-			else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
-				xv = MAX_VELOCITY;
-				faceRight = true;
-			} else if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
-				xv = -MAX_VELOCITY;
-				faceRight = false;
+		}
+
+		if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
+			xv = -MAX_VELOCITY;
+			curDir = left;
+
+			if (Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
+				xv = speedIncrease(xv);
 			}
+		}
 
+		else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
+			xv = MAX_VELOCITY;
+			curDir = right;
 
-
-
-
+			if (Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
+				xv = speedIncrease(xv);
+			}
+		}
+		if (xv == 0 && yv == 0) {
+			curDir = stand;
+		}
 
 		float delta = Gdx.graphics.getDeltaTime();
 		y += yv * delta;
@@ -114,15 +117,18 @@ public class MyGdxGame extends ApplicationAdapter {
 
 		yv = decelerate(yv);
 		xv = decelerate(xv);
-
-
 	}
 
 	public float decelerate(float velocity) {
-		velocity = DECELERATION;
+		velocity *= DECELERATION;
 		if (Math.abs(velocity) < 1) {
 			velocity = 0;
 		}
+		return velocity;
+	}
+
+	public float speedIncrease (float velocity) {
+		velocity *= SPEED_INCREASE;
 		return velocity;
 	}
 }
